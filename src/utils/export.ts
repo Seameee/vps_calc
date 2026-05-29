@@ -3,6 +3,24 @@ import { CURRENCY_SYMBOLS } from './constants';
 import { formatDate } from './date';
 
 /**
+ * 生成交易帖标题（纯文本格式，不带 Markdown）
+ */
+export function generateTradePostTitle(data: TradePostData): string {
+  const { vpsInfo, result, targetCurrency } = data;
+  const symbol = CURRENCY_SYMBOLS[targetCurrency];
+  const provider = vpsInfo.provider || 'VPS';
+  const model = vpsInfo.model || '';
+  const price = result.finalValue.toFixed(2);
+
+  const parts: string[] = [];
+  if (provider) parts.push(provider);
+  if (model) parts.push(model);
+  parts.push(`${symbol}${price}`);
+
+  return parts.join(' · ');
+}
+
+/**
  * 生成交易帖内容
  */
 export function generateTradePost(data: TradePostData, format: TradePostFormat): string {
@@ -12,7 +30,8 @@ export function generateTradePost(data: TradePostData, format: TradePostFormat):
   const lines: string[] = [];
 
   if (format === 'markdown') {
-    lines.push(`# [出售] ${vpsInfo.provider} - ${vpsInfo.model || 'VPS'}\n`);
+    lines.push(`# [出售] ${vpsInfo.provider} - ${vpsInfo.model || 'VPS'}`);
+    lines.push('');
     lines.push('## 配置信息');
   } else {
     lines.push(`[出售] ${vpsInfo.provider} - ${vpsInfo.model || 'VPS'}`);

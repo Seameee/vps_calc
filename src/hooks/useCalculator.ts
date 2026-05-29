@@ -35,7 +35,7 @@ export function useCalculator(inputs: VPSInputs): CalculatorResult {
     }
 
     if (inputs.isRoundingEnabled) {
-      finalValue = Math.round(finalValue);
+      finalValue = Math.floor(finalValue);
     }
 
     const exchangeRate =

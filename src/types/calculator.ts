@@ -16,7 +16,7 @@ export interface VPSInfo {
   storage: { value: number; type: 'SSD' | 'HDD' | 'NVMe' };
   bandwidth: { value: number; unit: 'Mbps' | 'Gbps' };
   traffic: { value: number; unit: 'GB' | 'TB'; unlimited: boolean };
-  trafficCalc: 'bidirectional' | 'unidirectional';
+  trafficCalc: 'sum' | 'max' | 'min' | 'upload' | 'download';
   features: string[];
   notes: string;
 }

@@ -18,7 +18,7 @@ interface ResultPanelProps {
 export function ResultPanel({ result, inputs }: ResultPanelProps) {
   if (!result) {
     return (
-      <div className={cn('glass-card flex items-center justify-center p-12')}>
+      <div className={cn('glass-card flex items-center justify-center p-8')}>
         <p className="text-white/50">请输入 VPS 信息以查看计算结果</p>
       </div>
     );
@@ -56,40 +56,40 @@ export function ResultPanel({ result, inputs }: ResultPanelProps) {
   ];
 
   return (
-    <div className={cn('glass-card space-y-6 p-6')}>
+    <div className={cn('glass-card space-y-4 p-4')}>
       <div className="flex items-center gap-2">
         <Percent className="h-5 w-5 text-blue-400" />
-        <h2 className="text-xl font-semibold text-white/95">计算结果</h2>
+        <h2 className="text-lg font-semibold text-white/95">计算结果</h2>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3">
         {stats.map((stat) => (
           <div
             key={stat.label}
             className={cn(
-              'rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition-all',
+              'rounded-xl border border-white/10 bg-white/[0.04] p-3 transition-all',
               stat.highlight && 'ring-1 ring-amber-400/30 bg-amber-400/5',
             )}
           >
-            <div className="mb-2 flex items-center gap-2">
-              <stat.icon className={cn('h-4 w-4', stat.accent)} />
+            <div className="mb-1 flex items-center gap-1.5">
+              <stat.icon className={cn('h-3.5 w-3.5', stat.accent)} />
               <span className="text-xs font-medium text-white/60">{stat.label}</span>
             </div>
-            <p className={cn('text-2xl font-bold tracking-tight', stat.highlight ? 'text-amber-400' : 'text-white/95')}>
+            <p className={cn('text-xl font-bold tracking-tight', stat.highlight ? 'text-amber-400' : 'text-white/95')}>
               {stat.value}
             </p>
           </div>
         ))}
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
         <p className="mb-1 text-xs font-medium text-white/60">计算过程</p>
-        <p className="break-words text-sm leading-relaxed text-white/70">{result.formula}</p>
+        <p className="break-words text-xs leading-relaxed text-white/70">{result.formula}</p>
       </div>
 
       {result.exchangeRate !== null && inputs.billingCurrency !== inputs.tradeCurrency && (
-        <div className="flex items-center gap-2 text-sm text-white/50">
-          <TrendingUp className="h-3.5 w-3.5" />
+        <div className="flex items-center gap-2 text-xs text-white/50">
+          <TrendingUp className="h-3 w-3" />
           <span>
             汇率: 1 {inputs.billingCurrency} ≈ {result.exchangeRate.toFixed(4)} {inputs.tradeCurrency}
           </span>
