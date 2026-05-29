@@ -200,7 +200,7 @@ export function CalculatorForm({ inputs, onChange }: CalculatorFormProps) {
               <Toggle
                 checked={inputs.traffic.unlimited}
                 onChange={(checked) => updateField('traffic', { ...inputs.traffic, unlimited: checked })}
-                label="不限流量"
+                label="无限"
                 className="w-auto shrink-0"
               />
             </div>

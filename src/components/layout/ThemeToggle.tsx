@@ -20,6 +20,7 @@ export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
   const currentOption = themeOptions.find((t) => t.value === theme) || themeOptions[0];
@@ -46,7 +47,10 @@ export function ThemeToggle() {
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
-      if (triggerRef.current && !triggerRef.current.contains(target)) {
+      if (
+        triggerRef.current && !triggerRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     }
@@ -81,6 +85,7 @@ export function ThemeToggle() {
 
       {isOpen && createPortal(
         <div
+          ref={dropdownRef}
           className="fixed rounded-xl border border-white/10 shadow-xl overflow-hidden z-[9999]"
           style={{
             top: position.top,
