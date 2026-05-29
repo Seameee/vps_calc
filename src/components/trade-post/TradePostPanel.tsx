@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import html2canvas from 'html2canvas';
 import type { VPSInputs, CalculatorResult } from '@/types/calculator';
 import type { TradePostData } from '@/types/trade';
 import { generateTradePost, generateTradePostTitle, downloadMarkdown } from '@/utils/export';
 import { useClipboard } from '@/hooks/useClipboard';
-import { Copy, Download, FileText, CheckCircle2, Type } from 'lucide-react';
+import { CURRENCY_SYMBOLS } from '@/utils/constants';
+import { Copy, Download, FileText, CheckCircle2, Type, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TradePostPanelProps {
@@ -11,14 +13,12 @@ interface TradePostPanelProps {
   result: CalculatorResult | null;
 }
 
-/**
- * 交易帖生成面板
- *
- * 根据计算结果自动生成并预览交易帖内容，
- * 支持复制到剪贴板和下载 Markdown 文件。
- */
 export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
   const [format, setFormat] = useState<'markdown' | 'plain'>('markdown');
+  const [isExporting, setIsExporting] = useState(false);
+  const [copiedImage, setCopiedImage] = useState(false);
+  const renderRef = useRef<HTMLDivElement>(null);
+
   const { copied: contentCopied, copy: copyContent, reset: resetContent } = useClipboard();
   const { copied: titleCopied, copy: copyTitle, reset: resetTitle } = useClipboard();
 
@@ -52,8 +52,65 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
   };
 
   const handleDownload = () => {
-    downloadMarkdown(content, `VPS交易帖_${inputs.provider || '未知'}.md`);
+    downloadMarkdown(content, `VPS\u4ea4\u6613\u5e16_${inputs.provider || '\u672a\u77e5'}.md`);
   };
+
+  const renderToCanvas = async (): Promise<HTMLCanvasElement> => {
+    if (!renderRef.current) throw new Error('Render ref not found');
+    return html2canvas(renderRef.current, {
+      backgroundColor: '#0f172a',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    });
+  };
+
+  const handleExportImage = async () => {
+    setIsExporting(true);
+    try {
+      const canvas = await renderToCanvas();
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/png')
+      );
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `VPS\u4ea4\u6613\u5e16_${inputs.provider || '\u672a\u77e5'}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('导出图片失败:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleCopyImage = async () => {
+    setIsExporting(true);
+    try {
+      const canvas = await renderToCanvas();
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/png')
+      );
+      if (blob && navigator.clipboard && navigator.clipboard.write) {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob }),
+        ]);
+        setCopiedImage(true);
+        setTimeout(() => setCopiedImage(false), 2000);
+      }
+    } catch (error) {
+      console.error('复制图片失败:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const symbol = CURRENCY_SYMBOLS[inputs.tradeCurrency];
 
   return (
     <div className={cn('glass-card space-y-4 p-4')}>
@@ -88,7 +145,7 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
       <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-xs text-white/50 mb-1">标题</p>
+            <p className="text-xs text-white/50 mb-1">标题预览</p>
             <p className="text-sm text-white/90 truncate">{title}</p>
           </div>
           <button
@@ -105,11 +162,39 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
         </div>
       </div>
 
+      {/* 源码预览 */}
       <pre className="max-h-64 overflow-auto rounded-xl border border-white/10 bg-black/30 p-3 text-sm leading-relaxed text-white/80">
         {content}
       </pre>
 
-      <div className="flex items-center gap-2">
+      {/* 隐藏的渲染区域 — 用于导出图片时渲染样式化内容 */}
+      <div
+        ref={renderRef}
+        className="fixed -left-[9999px] top-0 w-[600px] p-6 rounded-2xl"
+        style={{ background: '#0f172a', fontFamily: "'Inter', 'Noto Sans SC', sans-serif" }}
+      >
+        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px', marginBottom: '16px' }}>
+          <h2 style={{ color: '#fff', fontSize: '18px', fontWeight: 600, margin: 0 }}>{title}</h2>
+        </div>
+        <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
+          {content.split('\n').map((line, i) => {
+            if (line.startsWith('##') || line.startsWith('【')) {
+              return <div key={i} style={{ color: '#60a5fa', fontWeight: 600, marginTop: '12px', marginBottom: '8px' }}>{line.replace(/^##+\s*/, '')}</div>;
+            }
+            if (line.startsWith('**')) {
+              return <div key={i} style={{ fontWeight: 600 }}>{line.replace(/\*\*/g, '')}</div>;
+            }
+            return <div key={i}>{line}</div>;
+          })}
+        </div>
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: '16px', paddingTop: '12px', textAlign: 'right' }}>
+          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>
+            生成于 {new Date().toLocaleDateString('zh-CN')}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
         <button
           onClick={handleCopy}
           className={cn(
@@ -130,6 +215,35 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
         >
           <Download className="h-4 w-4" />
           下载文件
+        </button>
+      </div>
+
+      {/* 导出图片 */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleExportImage}
+          disabled={isExporting}
+          className={cn(
+            'inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2',
+            'bg-white/10 text-sm font-medium text-white/95 transition-all hover:bg-white/20',
+            'disabled:cursor-not-allowed disabled:opacity-50'
+          )}
+        >
+          <Image className="h-4 w-4" />
+          {isExporting ? '生成中...' : '导出图片'}
+        </button>
+        <button
+          onClick={handleCopyImage}
+          disabled={isExporting}
+          className={cn(
+            'inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2',
+            'bg-white/10 text-sm font-medium text-white/95 transition-all hover:bg-white/20',
+            copiedImage && 'bg-green-500/20 text-green-400',
+            'disabled:cursor-not-allowed disabled:opacity-50'
+          )}
+        >
+          {copiedImage ? <CheckCircle2 className="h-4 w-4" /> : <Image className="h-4 w-4" />}
+          {isExporting ? '生成中...' : copiedImage ? '已复制' : '复制图片'}
         </button>
       </div>
     </div>

@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { ChevronDown, Check } from 'lucide-react';
 
@@ -18,18 +19,44 @@ interface GlassSelectProps {
 }
 
 /**
- * 玻璃态美化下拉选择组件
- *
- * 自定义下拉菜单，适配深色主题，带有玻璃态效果和平滑动画。
+ * 玻璃态美化下拉选择组件（使用 Portal 避免层叠上下文遮挡）
  */
 export function GlassSelect({ value, onChange, options, placeholder, className, disabled }: GlassSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const selectedOption = options.find((o) => o.value === value);
 
+  // 计算下拉菜单位置
+  const updatePosition = () => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      // 使用 requestAnimationFrame 确保 DOM 已渲染
+      requestAnimationFrame(() => {
+        requestAnimationFrame(updatePosition);
+      });
+    }
+  }, [isOpen]);
+
+  // 点击外部关闭
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        triggerRef.current && !triggerRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     }
@@ -39,9 +66,21 @@ export function GlassSelect({ value, onChange, options, placeholder, className, 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
+  // 窗口大小/滚动变化时重新计算位置
+  useEffect(() => {
+    if (!isOpen) return;
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isOpen]);
+
   return (
-    <div className={cn('relative', className)} ref={ref}>
+    <div className={cn('relative', className)}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
@@ -58,12 +97,18 @@ export function GlassSelect({ value, onChange, options, placeholder, className, 
         />
       </button>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <div
-          className={cn(
-            'absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-white/10',
-            'bg-[#0f172a]/95 backdrop-blur-xl shadow-xl'
-          )}
+          ref={dropdownRef}
+          className="fixed overflow-hidden rounded-lg border border-white/10 shadow-xl z-[9999]"
+          style={{
+            top: position.top,
+            left: position.left,
+            width: position.width,
+            background: 'rgba(15, 15, 25, 0.95)',
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          }}
         >
           <div className="max-h-60 overflow-auto py-1">
             {options.map((option) => (
@@ -88,7 +133,8 @@ export function GlassSelect({ value, onChange, options, placeholder, className, 
               </button>
             ))}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

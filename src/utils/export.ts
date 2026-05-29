@@ -3,7 +3,8 @@ import { CURRENCY_SYMBOLS } from './constants';
 import { formatDate } from './date';
 
 /**
- * 生成交易帖标题（纯文本格式，不带 Markdown）
+ * 生成交易帖标题（统一格式）
+ * [出售] Provider - Model - ¥Price
  */
 export function generateTradePostTitle(data: TradePostData): string {
   const { vpsInfo, result, targetCurrency } = data;
@@ -12,12 +13,11 @@ export function generateTradePostTitle(data: TradePostData): string {
   const model = vpsInfo.model || '';
   const price = result.finalValue.toFixed(2);
 
-  const parts: string[] = [];
-  if (provider) parts.push(provider);
+  const parts: string[] = ['[出售]', provider];
   if (model) parts.push(model);
   parts.push(`${symbol}${price}`);
 
-  return parts.join(' · ');
+  return parts.join(' - ');
 }
 
 /**
@@ -29,12 +29,15 @@ export function generateTradePost(data: TradePostData, format: TradePostFormat):
 
   const lines: string[] = [];
 
+  // 统一标题格式：都包含价格
+  const title = generateTradePostTitle(data);
+
   if (format === 'markdown') {
-    lines.push(`# [出售] ${vpsInfo.provider} - ${vpsInfo.model || 'VPS'}`);
+    lines.push(`## ${title}`);
     lines.push('');
-    lines.push('## 配置信息');
+    lines.push('### 配置信息');
   } else {
-    lines.push(`[出售] ${vpsInfo.provider} - ${vpsInfo.model || 'VPS'}`);
+    lines.push(title);
     lines.push('');
     lines.push('【配置信息】');
   }
@@ -65,7 +68,7 @@ export function generateTradePost(data: TradePostData, format: TradePostFormat):
   lines.push('');
 
   if (format === 'markdown') {
-    lines.push('## 计费信息');
+    lines.push(`### 计费信息`);
   } else {
     lines.push('【计费信息】');
   }
@@ -77,7 +80,7 @@ export function generateTradePost(data: TradePostData, format: TradePostFormat):
   lines.push('');
 
   if (format === 'markdown') {
-    lines.push('## 交易信息');
+    lines.push(`### 交易信息`);
   } else {
     lines.push('【交易信息】');
   }

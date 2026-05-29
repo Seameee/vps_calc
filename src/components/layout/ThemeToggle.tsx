@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Sun, Moon, Monitor } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme, type Theme } from './ThemeProvider';
@@ -13,29 +14,58 @@ const themeOptions: { value: Theme; label: string; icon: typeof Sun }[] = [
  * 主题切换按钮
  *
  * 动态图标按钮，支持 dark / light / system 三种模式切换。
- * 点击后循环切换主题，图标跟随当前主题变化。
+ * 使用 Portal 渲染下拉菜单，避免层叠上下文遮挡。
  */
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
 
   const currentOption = themeOptions.find((t) => t.value === theme) || themeOptions[0];
   const Icon = currentOption.icon;
 
+  const updatePosition = () => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 4,
+        left: rect.right - 112, // w-28 = 112px, right aligned
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(updatePosition);
+      });
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      if (triggerRef.current && !triggerRef.current.contains(target)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('resize', updatePosition);
+      window.addEventListener('scroll', updatePosition, true);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isOpen]);
+
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
@@ -49,12 +79,17 @@ export function ThemeToggle() {
         <Icon className="h-[18px] w-[18px]" />
       </button>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <div
-          className={cn(
-            'absolute right-0 top-full mt-2 w-28 rounded-xl border border-white/10',
-            'bg-[#0f172a]/95 backdrop-blur-xl shadow-xl overflow-hidden z-50'
-          )}
+          className="fixed rounded-xl border border-white/10 shadow-xl overflow-hidden z-[9999]"
+          style={{
+            top: position.top,
+            left: position.left,
+            width: '112px',
+            background: 'rgba(15, 15, 25, 0.95)',
+            backdropFilter: 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          }}
         >
           {themeOptions.map((option) => (
             <button
@@ -75,7 +110,8 @@ export function ThemeToggle() {
               <span>{option.label}</span>
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
