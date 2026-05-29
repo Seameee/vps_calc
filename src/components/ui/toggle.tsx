@@ -18,7 +18,7 @@ export function Toggle({ checked, onChange, label, description, className }: Tog
   return (
     <div
       className={cn(
-        'flex cursor-pointer items-center justify-between rounded-lg border border-white/10',
+        'flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-white/10',
         'bg-white/[0.04] px-3 py-2.5 transition-colors hover:bg-white/[0.06]',
         className
       )}
