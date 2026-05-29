@@ -11,5 +11,13 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('html2canvas')) return 'html2canvas';
+          if (id.includes('node_modules')) return 'vendor';
+        },
+      },
+    },
   },
 });

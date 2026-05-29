@@ -1,5 +1,4 @@
 import { useState, useRef } from 'react';
-import html2canvas from 'html2canvas';
 import type { VPSInputs, CalculatorResult } from '@/types/calculator';
 import type { TradePostData } from '@/types/trade';
 import { generateTradePost, generateTradePostTitle, downloadMarkdown } from '@/utils/export';
@@ -55,9 +54,9 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
     downloadMarkdown(content, `VPS\u4ea4\u6613\u5e16_${inputs.provider || '\u672a\u77e5'}.md`);
   };
 
-  const renderToCanvas = async (): Promise<HTMLCanvasElement> => {
-    if (!renderRef.current) throw new Error('Render ref not found');
-    return html2canvas(renderRef.current, {
+  const renderToCanvas = async (element: HTMLElement): Promise<HTMLCanvasElement> => {
+    const { default: html2canvas } = await import('html2canvas');
+    return html2canvas(element, {
       backgroundColor: '#0f172a',
       scale: 2,
       useCORS: true,
@@ -66,9 +65,10 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
   };
 
   const handleExportImage = async () => {
+    if (!renderRef.current) return;
     setIsExporting(true);
     try {
-      const canvas = await renderToCanvas();
+      const canvas = await renderToCanvas(renderRef.current);
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, 'image/png')
       );
@@ -90,9 +90,10 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
   };
 
   const handleCopyImage = async () => {
+    if (!renderRef.current) return;
     setIsExporting(true);
     try {
-      const canvas = await renderToCanvas();
+      const canvas = await renderToCanvas(renderRef.current);
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, 'image/png')
       );
