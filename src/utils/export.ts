@@ -57,6 +57,16 @@ export function generateTradePost(data: TradePostData, format: TradePostFormat):
     lines.push(specs.join(' | '));
   }
 
+  // 流量计算方式
+  const trafficCalcLabels: Record<string, string> = {
+    sum: '总和',
+    max: '取最大',
+    min: '取最小',
+    upload: '仅上传',
+    download: '仅下载',
+  };
+  lines.push(`流量计算: ${trafficCalcLabels[vpsInfo.trafficCalc] || vpsInfo.trafficCalc}`);
+
   if (vpsInfo.features.length > 0) {
     lines.push(`特性: ${vpsInfo.features.join(', ')}`);
   }
@@ -87,9 +97,20 @@ export function generateTradePost(data: TradePostData, format: TradePostFormat):
 
   lines.push(`售价: ${symbol}${result.finalValue.toFixed(2)} ${targetCurrency}`);
 
-  if (tradeSettings.surcharge !== 0) {
-    const sign = tradeSettings.surcharge > 0 ? '+' : '-';
-    lines.push(`溢价/折价: ${sign}${symbol}${Math.abs(tradeSettings.surcharge).toFixed(2)}`);
+  // 交易方式
+  const tradeMethodLabels: Record<string, string> = {
+    original_email: '原始邮箱',
+    push: '站内 Push',
+    account_password: '账号密码/子账户',
+    root_account: 'Root 账号',
+  };
+  if (tradeSettings.tradeMethod) {
+    lines.push(`交易方式: ${tradeMethodLabels[tradeSettings.tradeMethod] || tradeSettings.tradeMethod}`);
+  }
+
+  if (result.calculatedSurcharge !== 0) {
+    const sign = result.calculatedSurcharge > 0 ? '+' : '-';
+    lines.push(`溢价/折价: ${sign}${symbol}${Math.abs(result.calculatedSurcharge).toFixed(2)}`);
   }
 
   if (tradeSettings.pushFee > 0) {

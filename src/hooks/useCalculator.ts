@@ -29,7 +29,17 @@ export function useCalculator(inputs: VPSInputs): CalculatorResult {
       rates,
     );
 
-    let finalValue = convertedValue + inputs.surcharge;
+    // 如果设置了目标最终价格，根据目标价格反算溢价/折价
+    let calculatedSurcharge = inputs.surcharge;
+    let finalValue: number;
+
+    if (inputs.targetFinalPrice != null && inputs.targetFinalPrice > 0) {
+      calculatedSurcharge = inputs.targetFinalPrice - convertedValue;
+      finalValue = inputs.targetFinalPrice;
+    } else {
+      finalValue = convertedValue + calculatedSurcharge;
+    }
+
     if (inputs.feeBearer === 'buyer' && inputs.pushFee > 0) {
       finalValue += inputs.pushFee;
     }
@@ -50,9 +60,16 @@ export function useCalculator(inputs: VPSInputs): CalculatorResult {
       `转换后: ${convertedValue.toFixed(2)} ${inputs.tradeCurrency}`,
     ];
 
-    if (inputs.surcharge !== 0) {
+    if (inputs.targetFinalPrice != null && inputs.targetFinalPrice > 0) {
       formulaLines.push(
-        `溢价/折价: ${inputs.surcharge > 0 ? '+' : ''}${inputs.surcharge.toFixed(2)} ${inputs.tradeCurrency}`,
+        `目标售价: ${inputs.targetFinalPrice.toFixed(2)} ${inputs.tradeCurrency}`,
+      );
+      formulaLines.push(
+        `计算溢价/折价: ${calculatedSurcharge > 0 ? '+' : ''}${calculatedSurcharge.toFixed(2)} ${inputs.tradeCurrency}`,
+      );
+    } else if (calculatedSurcharge !== 0) {
+      formulaLines.push(
+        `溢价/折价: ${calculatedSurcharge > 0 ? '+' : ''}${calculatedSurcharge.toFixed(2)} ${inputs.tradeCurrency}`,
       );
     }
 
@@ -69,6 +86,7 @@ export function useCalculator(inputs: VPSInputs): CalculatorResult {
       dailyPrice,
       remainingValue,
       convertedValue,
+      calculatedSurcharge,
       finalValue,
       formula,
       exchangeRate: exchangeRate ?? null,

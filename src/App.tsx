@@ -29,6 +29,8 @@ const defaultInputs: VPSInputs = {
   billingCycle: 'monthly',
   expirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
   surcharge: 0,
+  targetFinalPrice: null,
+  tradeMethod: null,
   pushFee: 0,
   feeBearer: 'buyer',
   tradeCurrency: 'CNY',
@@ -75,6 +77,8 @@ function deserializeInputs(data: unknown): VPSInputs | null {
       billingCycle: (d.billingCycle ?? 'monthly') as VPSInputs['billingCycle'],
       expirationDate: expiration,
       surcharge: Number(d.surcharge ?? 0),
+      targetFinalPrice: d.targetFinalPrice != null ? Number(d.targetFinalPrice) : null,
+      tradeMethod: (d.tradeMethod ?? null) as VPSInputs['tradeMethod'],
       pushFee: Number(d.pushFee ?? 0),
       feeBearer: (d.feeBearer ?? 'buyer') as VPSInputs['feeBearer'],
       tradeCurrency: (d.tradeCurrency ?? 'CNY') as VPSInputs['tradeCurrency'],
@@ -138,12 +142,12 @@ export default function App() {
                 {/* 左侧表单 */}
                 <section className="space-y-3">
                   <CalculatorForm inputs={inputs} onChange={handleInputChange} />
-                  <TradePostPanel inputs={inputs} result={result} />
                 </section>
 
-                {/* 右侧结果 — sticky跟随 */}
+                {/* 右侧结果 + 交易帖 — sticky跟随 */}
                 <section className="space-y-3 lg:sticky lg:top-4 lg:self-start">
                   <ResultPanel result={result} inputs={inputs} />
+                  <TradePostPanel inputs={inputs} result={result} />
                 </section>
               </div>
             </main>

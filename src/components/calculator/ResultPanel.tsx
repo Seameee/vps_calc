@@ -2,7 +2,7 @@ import type { CalculatorResult } from '@/types/calculator';
 import type { VPSInputs } from '@/types/calculator';
 import { CURRENCY_SYMBOLS } from '@/utils/constants';
 import { formatNumber } from '@/utils/formatters';
-import { Calculator, Clock, TrendingUp, DollarSign, Percent } from 'lucide-react';
+import { Calculator, Clock, TrendingUp, DollarSign, Percent, ArrowRightLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ResultPanelProps {
@@ -47,6 +47,12 @@ export function ResultPanel({ result, inputs }: ResultPanelProps) {
       accent: 'text-green-400',
     },
     {
+      icon: ArrowRightLeft,
+      label: '溢价/折价',
+      value: `${result.calculatedSurcharge >= 0 ? '+' : ''}${symbol}${result.calculatedSurcharge.toFixed(2)}`,
+      accent: result.calculatedSurcharge >= 0 ? 'text-amber-400' : 'text-red-400',
+    },
+    {
       icon: Calculator,
       label: '最终售价',
       value: `${symbol}${result.finalValue.toFixed(2)}`,
@@ -68,6 +74,7 @@ export function ResultPanel({ result, inputs }: ResultPanelProps) {
             key={stat.label}
             className={cn(
               'rounded-xl border border-white/10 bg-white/[0.04] p-3 transition-all',
+              stat.label === '最终售价' ? 'col-span-2' : '',
               stat.highlight && 'ring-1 ring-amber-400/30 bg-amber-400/5',
             )}
           >

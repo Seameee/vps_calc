@@ -2,7 +2,7 @@
 export type BillingCycle = 'monthly' | 'quarterly' | 'semi-annually' | 'annually' | 'biennially' | 'triennially';
 
 /** 交易方式 */
-export type TradeMethod = 'push' | 'transfer' | 'other';
+export type TradeMethod = 'original_email' | 'push' | 'account_password' | 'root_account';
 
 /** 费用承担方 */
 export type FeeBearer = 'seller' | 'buyer';
@@ -32,6 +32,8 @@ export interface BillingInfo {
 /** 交易设置 */
 export interface TradeSettings {
   surcharge: number;
+  targetFinalPrice: number | null;
+  tradeMethod: TradeMethod | null;
   pushFee: number;
   feeBearer: FeeBearer;
   tradeCurrency: import('./currency').CurrencyCode;
@@ -54,6 +56,7 @@ export interface CalculatorResult {
   dailyPrice: number;
   remainingValue: number;
   convertedValue: number;
+  calculatedSurcharge: number;
   finalValue: number;
   formula: string;
   exchangeRate: number | null;

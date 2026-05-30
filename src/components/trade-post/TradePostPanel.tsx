@@ -123,6 +123,21 @@ const renderToCanvas = async (
   let currentY = PADDING + 60 + 24; // header + separator
 
   // Calculate section heights
+  const tradeMethodLabels: Record<string, string> = {
+    original_email: '原始邮箱',
+    push: '站内 Push',
+    account_password: '账号密码/子账户',
+    root_account: 'Root 账号',
+  };
+
+  const trafficCalcLabels: Record<string, string> = {
+    sum: '总和',
+    max: '取最大',
+    min: '取最小',
+    upload: '仅上传',
+    download: '仅下载',
+  };
+
   const sections: { title: string; rows: [string, string][] }[] = [
     {
       title: '配置信息',
@@ -133,6 +148,7 @@ const renderToCanvas = async (
         ['存储', `${inputs.storage.value}GB ${inputs.storage.type}`],
         ['带宽', `${inputs.bandwidth.value}${inputs.bandwidth.unit}`],
         ['流量', `${inputs.traffic.unlimited ? '不限' : inputs.traffic.value + inputs.traffic.unit}`],
+        ['流量计算', trafficCalcLabels[inputs.trafficCalc] || inputs.trafficCalc],
       ],
     },
     {
@@ -155,7 +171,8 @@ const renderToCanvas = async (
       title: '交易信息',
       rows: [
         ['交易货币', `${tradeSymbol} ${tradeName}`],
-        ['溢价/折价', `${inputs.surcharge >= 0 ? '+' : ''}${tradeSymbol}${fmtPrice(inputs.surcharge)}`],
+        ...(inputs.tradeMethod ? [['交易方式', tradeMethodLabels[inputs.tradeMethod] || inputs.tradeMethod] as [string, string]] : []),
+        ['溢价/折价', `${result.calculatedSurcharge >= 0 ? '+' : ''}${tradeSymbol}${fmtPrice(result.calculatedSurcharge)}`],
         ['过户费', `${tradeSymbol}${fmtPrice(inputs.pushFee)} (${inputs.feeBearer === 'seller' ? '卖家承担' : '买家承担'})`],
       ],
     },
@@ -268,7 +285,7 @@ const renderToCanvas = async (
   const tags = [
     { text: `剩 ${fmtDays(result.remainingDays)} 天`, color: '#34d399', bg: 'rgba(52,211,153,0.15)' },
     { text: `日均 ${tradeSymbol}${fmtPrice(result.dailyPrice)}`, color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
-    { text: `溢价 ${inputs.surcharge >= 0 ? '+' : ''}${tradeSymbol}${fmtPrice(inputs.surcharge)}`, color: '#f87171', bg: 'rgba(248,113,113,0.15)' },
+    { text: `溢价 ${result.calculatedSurcharge >= 0 ? '+' : ''}${tradeSymbol}${fmtPrice(result.calculatedSurcharge)}`, color: '#f87171', bg: 'rgba(248,113,113,0.15)' },
   ];
 
   for (const tag of tags) {

@@ -20,6 +20,12 @@ const FEE_BEARER_OPTIONS = [
   { value: 'seller', label: '卖家承担' },
   { value: 'buyer', label: '买家承担' },
 ];
+const TRADE_METHOD_OPTIONS = [
+  { value: 'original_email', label: '原始邮箱' },
+  { value: 'push', label: '站内 Push' },
+  { value: 'account_password', label: '账号密码/子账户' },
+  { value: 'root_account', label: 'Root 账号' },
+];
 const TRAFFIC_CALC_OPTIONS = [
   { value: 'sum', label: '总和' },
   { value: 'max', label: '取最大' },
@@ -334,6 +340,32 @@ export function CalculatorForm({ inputs, onChange }: CalculatorFormProps) {
                 placeholder="正数溢价，负数折价"
                 value={inputs.surcharge || ''}
                 onChange={(e) => updateField('surcharge', Number(e.target.value))}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="targetFinalPrice">目标最终价格</Label>
+              <Input
+                id="targetFinalPrice"
+                type="number"
+                min={0}
+                step={0.01}
+                placeholder="设置后自动计算溢价/折价"
+                value={inputs.targetFinalPrice ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  updateField('targetFinalPrice', val === '' ? null : Number(val));
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="tradeMethod">交易方式</Label>
+              <GlassSelect
+                value={inputs.tradeMethod ?? ''}
+                onChange={(value) => updateField('tradeMethod', value === '' ? null : value as VPSInputs['tradeMethod'])}
+                options={[{ value: '', label: '请选择' }, ...TRADE_METHOD_OPTIONS]}
               />
             </div>
             <div className="space-y-1">
