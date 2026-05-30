@@ -1,10 +1,8 @@
-import { useState, useRef } from 'react';
-import html2canvas from 'html2canvas';
+import { useState } from 'react';
 import type { VPSInputs, CalculatorResult } from '@/types/calculator';
 import type { TradePostData } from '@/types/trade';
 import { generateTradePost, generateTradePostTitle, downloadMarkdown } from '@/utils/export';
 import { useClipboard } from '@/hooks/useClipboard';
-import { CURRENCY_SYMBOLS } from '@/utils/constants';
 import { Copy, Download, FileText, CheckCircle2, Type, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -13,11 +11,172 @@ interface TradePostPanelProps {
   result: CalculatorResult | null;
 }
 
+/**
+ * 将文本按 maxWidth 自动换行
+ * 支持中英文混合，按字符逐个检查宽度
+ */
+const wrapText = (
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number
+): string[] => {
+  if (!text) return [''];
+
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const testLine = currentLine + char;
+    const metrics = ctx.measureText(testLine);
+
+    if (metrics.width > maxWidth && currentLine.length > 0) {
+      lines.push(currentLine);
+      currentLine = char;
+    } else {
+      currentLine = testLine;
+    }
+  }
+
+  if (currentLine.length > 0) {
+    lines.push(currentLine);
+  }
+
+  return lines.length > 0 ? lines : [''];
+};
+
+/**
+ * 使用原生 Canvas API 绘制交易帖图片
+ * 完全绕过 html2canvas，避免 iframe/CSP 兼容性问题
+ */
+const renderToCanvas = async (
+  title: string,
+  content: string
+): Promise<HTMLCanvasElement> => {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d')!;
+
+  const WIDTH = 600;
+  const PADDING = 24;
+  const CONTENT_WIDTH = WIDTH - PADDING * 2;
+  const BASE_LINE_HEIGHT = Math.round(14 * 1.8); // ~25px
+  const SCALE = 2;
+
+  // ---- 1. 预计算内容高度 ----
+  let contentHeight = 0;
+  const lines = content.split('\n');
+
+  for (const line of lines) {
+    if (line.startsWith('##') || line.startsWith('【')) {
+      ctx.font = '600 14px Inter, "Noto Sans SC", sans-serif';
+      const text = line.replace(/^##+\s*/, '');
+      const wrapped = wrapText(ctx, text, CONTENT_WIDTH);
+      contentHeight += wrapped.length * BASE_LINE_HEIGHT + 12 + 8;
+    } else if (line.startsWith('**')) {
+      ctx.font = '600 14px Inter, "Noto Sans SC", sans-serif';
+      const text = line.replace(/\*\*/g, '');
+      const wrapped = wrapText(ctx, text, CONTENT_WIDTH);
+      contentHeight += wrapped.length * BASE_LINE_HEIGHT;
+    } else if (line.trim() === '') {
+      contentHeight += BASE_LINE_HEIGHT;
+    } else {
+      ctx.font = '14px Inter, "Noto Sans SC", sans-serif';
+      const wrapped = wrapText(ctx, line, CONTENT_WIDTH);
+      contentHeight += wrapped.length * BASE_LINE_HEIGHT;
+    }
+  }
+
+  // 标题区域高度
+  const HEADER_HEIGHT = 18 + 12 + 16; // fontSize + padding + margin
+  const FOOTER_HEIGHT = 16 + 12 + 12 + 12; // border + padding + fontSize + extra
+  const TOTAL_HEIGHT = PADDING + HEADER_HEIGHT + contentHeight + FOOTER_HEIGHT + PADDING;
+
+  // ---- 2. 设置 Canvas 尺寸 (Retina) ----
+  canvas.width = WIDTH * SCALE;
+  canvas.height = TOTAL_HEIGHT * SCALE;
+  ctx.scale(SCALE, SCALE);
+
+  // ---- 3. 绘制背景 ----
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, 0, WIDTH, TOTAL_HEIGHT);
+
+  // ---- 4. 绘制标题 ----
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '600 18px Inter, "Noto Sans SC", sans-serif';
+  const titleY = PADDING + 18;
+  ctx.fillText(title, PADDING, titleY);
+
+  // 标题下边框
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PADDING, titleY + 12);
+  ctx.lineTo(WIDTH - PADDING, titleY + 12);
+  ctx.stroke();
+
+  // ---- 5. 绘制内容 ----
+  let y = PADDING + HEADER_HEIGHT;
+
+  for (const line of lines) {
+    if (line.startsWith('##') || line.startsWith('【')) {
+      // 小标题行
+      ctx.fillStyle = '#60a5fa';
+      ctx.font = '600 14px Inter, "Noto Sans SC", sans-serif';
+      const text = line.replace(/^##+\s*/, '');
+      const wrapped = wrapText(ctx, text, CONTENT_WIDTH);
+      for (const l of wrapped) {
+        ctx.fillText(l, PADDING, y);
+        y += BASE_LINE_HEIGHT;
+      }
+      y += 12 + 8 - BASE_LINE_HEIGHT; // marginTop + marginBottom 调整
+    } else if (line.startsWith('**')) {
+      // 粗体行
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '600 14px Inter, "Noto Sans SC", sans-serif';
+      const text = line.replace(/\*\*/g, '');
+      const wrapped = wrapText(ctx, text, CONTENT_WIDTH);
+      for (const l of wrapped) {
+        ctx.fillText(l, PADDING, y);
+        y += BASE_LINE_HEIGHT;
+      }
+    } else if (line.trim() === '') {
+      // 空行
+      y += BASE_LINE_HEIGHT;
+    } else {
+      // 普通行
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.font = '14px Inter, "Noto Sans SC", sans-serif';
+      const wrapped = wrapText(ctx, line, CONTENT_WIDTH);
+      for (const l of wrapped) {
+        ctx.fillText(l, PADDING, y);
+        y += BASE_LINE_HEIGHT;
+      }
+    }
+  }
+
+  // ---- 6. 绘制底部 ----
+  y += 16;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PADDING, y);
+  ctx.lineTo(WIDTH - PADDING, y);
+  ctx.stroke();
+
+  y += 12 + 12;
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.font = '12px Inter, "Noto Sans SC", sans-serif';
+  const dateText = `生成于 ${new Date().toLocaleDateString('zh-CN')}`;
+  const dateWidth = ctx.measureText(dateText).width;
+  ctx.fillText(dateText, WIDTH - PADDING - dateWidth, y);
+
+  return canvas;
+};
+
 export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
   const [format, setFormat] = useState<'markdown' | 'plain'>('markdown');
   const [isExporting, setIsExporting] = useState(false);
   const [copiedImage, setCopiedImage] = useState(false);
-  const renderRef = useRef<HTMLDivElement>(null);
 
   const { copied: contentCopied, copy: copyContent, reset: resetContent } = useClipboard();
   const { copied: titleCopied, copy: copyTitle, reset: resetTitle } = useClipboard();
@@ -55,20 +214,10 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
     downloadMarkdown(content, `VPS\u4ea4\u6613\u5e16_${inputs.provider || '\u672a\u77e5'}.md`);
   };
 
-  const renderToCanvas = async (): Promise<HTMLCanvasElement> => {
-    if (!renderRef.current) throw new Error('Render ref not found');
-    return html2canvas(renderRef.current, {
-      backgroundColor: '#0f172a',
-      scale: 2,
-      useCORS: true,
-      logging: false,
-    });
-  };
-
   const handleExportImage = async () => {
     setIsExporting(true);
     try {
-      const canvas = await renderToCanvas();
+      const canvas = await renderToCanvas(title, content);
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, 'image/png')
       );
@@ -92,7 +241,7 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
   const handleCopyImage = async () => {
     setIsExporting(true);
     try {
-      const canvas = await renderToCanvas();
+      const canvas = await renderToCanvas(title, content);
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, 'image/png')
       );
@@ -109,8 +258,6 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
       setIsExporting(false);
     }
   };
-
-  const symbol = CURRENCY_SYMBOLS[inputs.tradeCurrency];
 
   return (
     <div className={cn('glass-card space-y-4 p-4')}>
@@ -166,33 +313,6 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
       <pre className="max-h-64 overflow-auto rounded-xl border border-white/10 bg-black/30 p-3 text-sm leading-relaxed text-white/80">
         {content}
       </pre>
-
-      {/* 隐藏的渲染区域 — 用于导出图片时渲染样式化内容 */}
-      <div
-        ref={renderRef}
-        className="fixed -left-[9999px] top-0 w-[600px] p-6 rounded-2xl"
-        style={{ background: '#0f172a', fontFamily: "'Inter', 'Noto Sans SC', sans-serif" }}
-      >
-        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px', marginBottom: '16px' }}>
-          <h2 style={{ color: '#fff', fontSize: '18px', fontWeight: 600, margin: 0 }}>{title}</h2>
-        </div>
-        <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
-          {content.split('\n').map((line, i) => {
-            if (line.startsWith('##') || line.startsWith('【')) {
-              return <div key={i} style={{ color: '#60a5fa', fontWeight: 600, marginTop: '12px', marginBottom: '8px' }}>{line.replace(/^##+\s*/, '')}</div>;
-            }
-            if (line.startsWith('**')) {
-              return <div key={i} style={{ fontWeight: 600 }}>{line.replace(/\*\*/g, '')}</div>;
-            }
-            return <div key={i}>{line}</div>;
-          })}
-        </div>
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', marginTop: '16px', paddingTop: '12px', textAlign: 'right' }}>
-          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>
-            生成于 {new Date().toLocaleDateString('zh-CN')}
-          </span>
-        </div>
-      </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <button
