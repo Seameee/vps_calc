@@ -3,6 +3,7 @@ import type { VPSInputs, CalculatorResult } from '@/types/calculator';
 import type { TradePostData } from '@/types/trade';
 import { generateTradePost, generateTradePostTitle, downloadMarkdown } from '@/utils/export';
 import { useClipboard } from '@/hooks/useClipboard';
+import { CURRENCY_SYMBOLS } from '@/utils/constants';
 import { Copy, Download, FileText, CheckCircle2, Type, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -11,167 +12,287 @@ interface TradePostPanelProps {
   result: CalculatorResult | null;
 }
 
-/**
- * 将文本按 maxWidth 自动换行
- * 支持中英文混合，按字符逐个检查宽度
- */
-const wrapText = (
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  maxWidth: number
-): string[] => {
-  if (!text) return [''];
+/* ------------------------------------------------------------------ */
+/*  Currency name mapping                                            */
+/* ------------------------------------------------------------------ */
 
-  const lines: string[] = [];
-  let currentLine = '';
-
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
-    const testLine = currentLine + char;
-    const metrics = ctx.measureText(testLine);
-
-    if (metrics.width > maxWidth && currentLine.length > 0) {
-      lines.push(currentLine);
-      currentLine = char;
-    } else {
-      currentLine = testLine;
-    }
-  }
-
-  if (currentLine.length > 0) {
-    lines.push(currentLine);
-  }
-
-  return lines.length > 0 ? lines : [''];
+const CURRENCY_NAMES: Record<string, string> = {
+  USD: '美元',
+  CNY: '人民币',
+  EUR: '欧元',
+  GBP: '英镑',
+  JPY: '日元',
 };
 
-/**
- * 使用原生 Canvas API 绘制交易帖图片
- * 完全绕过 html2canvas，避免 iframe/CSP 兼容性问题
- */
+/* ------------------------------------------------------------------ */
+/*  Canvas helpers                                                    */
+/* ------------------------------------------------------------------ */
+
+function drawTag(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  color: string,
+  bgColor: string
+) {
+  ctx.font = '600 12px Inter, "PingFang SC", "Microsoft YaHei", sans-serif';
+  const width = ctx.measureText(text).width + 16;
+  const height = 22;
+
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(x, y - height + 4, width, height);
+
+  ctx.fillStyle = color;
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x + 8, y - height / 2 + 4);
+  ctx.textBaseline = 'alphabetic';
+
+  return width;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Draw server icon (decorative)                                     */
+/* ------------------------------------------------------------------ */
+
+function drawServerIcon(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.strokeStyle = '#60a5fa';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // Server body (rect)
+  ctx.strokeRect(0, 0, size, size * 0.75);
+
+  // Horizontal lines inside
+  ctx.beginPath();
+  ctx.moveTo(size * 0.15, size * 0.3);
+  ctx.lineTo(size * 0.85, size * 0.3);
+  ctx.moveTo(size * 0.15, size * 0.5);
+  ctx.lineTo(size * 0.85, size * 0.5);
+  ctx.stroke();
+
+  // Dots
+  ctx.fillStyle = '#60a5fa';
+  ctx.beginPath();
+  ctx.arc(size * 0.25, size * 0.15, size * 0.04, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(size * 0.4, size * 0.15, size * 0.04, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+/* ------------------------------------------------------------------ */
+/*  Main render function                                              */
+/* ------------------------------------------------------------------ */
+
 const renderToCanvas = async (
-  title: string,
-  content: string
+  inputs: VPSInputs,
+  result: CalculatorResult
 ): Promise<HTMLCanvasElement> => {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d')!;
 
-  const WIDTH = 600;
-  const PADDING = 24;
-  const CONTENT_WIDTH = WIDTH - PADDING * 2;
-  const BASE_LINE_HEIGHT = Math.round(14 * 1.8); // ~25px
+  const CARD_W = 640;
+  const PADDING = 32;
   const SCALE = 2;
+  const symbol = CURRENCY_SYMBOLS[inputs.billingCurrency];
+  const tradeSymbol = CURRENCY_SYMBOLS[inputs.tradeCurrency];
+  const tradeName = CURRENCY_NAMES[inputs.tradeCurrency] || inputs.tradeCurrency;
 
-  // ---- 1. 预计算内容高度 ----
-  let contentHeight = 0;
-  const lines = content.split('\n');
+  /* ---- helpers ---- */
+  const fmtDate = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-  for (const line of lines) {
-    if (line.startsWith('##') || line.startsWith('【')) {
-      ctx.font = '600 14px Inter, "Noto Sans SC", sans-serif';
-      const text = line.replace(/^##+\s*/, '');
-      const wrapped = wrapText(ctx, text, CONTENT_WIDTH);
-      contentHeight += wrapped.length * BASE_LINE_HEIGHT + 12 + 8;
-    } else if (line.startsWith('**')) {
-      ctx.font = '600 14px Inter, "Noto Sans SC", sans-serif';
-      const text = line.replace(/\*\*/g, '');
-      const wrapped = wrapText(ctx, text, CONTENT_WIDTH);
-      contentHeight += wrapped.length * BASE_LINE_HEIGHT;
-    } else if (line.trim() === '') {
-      contentHeight += BASE_LINE_HEIGHT;
-    } else {
-      ctx.font = '14px Inter, "Noto Sans SC", sans-serif';
-      const wrapped = wrapText(ctx, line, CONTENT_WIDTH);
-      contentHeight += wrapped.length * BASE_LINE_HEIGHT;
-    }
+  const fmtPrice = (n: number) =>
+    n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const fmtDays = (n: number) =>
+    n.toLocaleString('zh-CN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+  /* ---- layout metrics ---- */
+  const SECTION_GAP = 20;
+  const ITEM_GAP = 12;
+  const LABEL_W = 100;
+  const VALUE_X = LABEL_W + 16;
+
+  let currentY = PADDING + 60 + 24; // header + separator
+
+  // Calculate section heights
+  const sections: { title: string; rows: [string, string][] }[] = [
+    {
+      title: '配置信息',
+      rows: [
+        ['提供商', inputs.provider || '-'],
+        ['型号', inputs.model || '-'],
+        ['CPU / 内存', `${inputs.cpu}核 / ${inputs.ram.value}${inputs.ram.unit}`],
+        ['存储', `${inputs.storage.value}GB ${inputs.storage.type}`],
+        ['带宽', `${inputs.bandwidth.value}${inputs.bandwidth.unit}`],
+        ['流量', `${inputs.traffic.unlimited ? '不限' : inputs.traffic.value + inputs.traffic.unit}`],
+      ],
+    },
+    {
+      title: '计费信息',
+      rows: [
+        ['续费价格', `${symbol}${fmtPrice(inputs.renewalPrice)} / ${inputs.billingCycle === 'monthly' ? '月' : inputs.billingCycle === 'quarterly' ? '季' : inputs.billingCycle === 'semi-annually' ? '半年' : inputs.billingCycle === 'annually' ? '年' : inputs.billingCycle === 'biennially' ? '两年' : '三年'}`],
+        ['到期时间', fmtDate(inputs.expirationDate)],
+        ['剩余天数', `${fmtDays(result.remainingDays)}天`],
+      ],
+    },
+    {
+      title: '计算结果',
+      rows: [
+        ['日均成本', `${symbol}${fmtPrice(result.dailyPrice)}`],
+        ['剩余价值', `${symbol}${fmtPrice(result.remainingValue)}`],
+        ['换算后', `${tradeSymbol}${fmtPrice(result.convertedValue)}`],
+      ],
+    },
+    {
+      title: '交易信息',
+      rows: [
+        ['交易货币', `${tradeSymbol} ${tradeName}`],
+        ['溢价/折价', `${inputs.surcharge >= 0 ? '+' : ''}${tradeSymbol}${fmtPrice(inputs.surcharge)}`],
+        ['过户费', `${tradeSymbol}${fmtPrice(inputs.pushFee)} (${inputs.feeBearer === 'seller' ? '卖家承担' : '买家承担'})`],
+      ],
+    },
+  ];
+
+  // Calculate total height
+  let totalHeight = currentY;
+  for (const section of sections) {
+    totalHeight += 28 + 12; // title + margin
+    totalHeight += section.rows.length * (14 * 1.6 + ITEM_GAP);
+    totalHeight += SECTION_GAP;
   }
+  totalHeight += 100; // final value + tags + footer
 
-  // 标题区域高度
-  const HEADER_HEIGHT = 18 + 12 + 16; // fontSize + padding + margin
-  const FOOTER_HEIGHT = 16 + 12 + 12 + 12; // border + padding + fontSize + extra
-  const TOTAL_HEIGHT = PADDING + HEADER_HEIGHT + contentHeight + FOOTER_HEIGHT + PADDING;
-
-  // ---- 2. 设置 Canvas 尺寸 (Retina) ----
-  canvas.width = WIDTH * SCALE;
-  canvas.height = TOTAL_HEIGHT * SCALE;
+  /* ---- canvas setup ---- */
+  canvas.width = CARD_W * SCALE;
+  canvas.height = totalHeight * SCALE;
   ctx.scale(SCALE, SCALE);
 
-  // ---- 3. 绘制背景 ----
-  ctx.fillStyle = '#0f172a';
-  ctx.fillRect(0, 0, WIDTH, TOTAL_HEIGHT);
+  /* ---- card background ---- */
+  ctx.fillStyle = '#0b1120';
+  ctx.fillRect(0, 0, CARD_W, totalHeight);
 
-  // ---- 4. 绘制标题 ----
+  /* ---- subtle border ---- */
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(0, 0, CARD_W, totalHeight);
+
+  /* ---- top accent line ---- */
+  const grad = ctx.createLinearGradient(PADDING, 0, CARD_W - PADDING, 0);
+  grad.addColorStop(0, '#60a5fa');
+  grad.addColorStop(1, '#a78bfa');
+  ctx.fillStyle = grad;
+  ctx.fillRect(PADDING, 12, CARD_W - PADDING * 2, 3);
+
+  /* ---- header: icon + title ---- */
+  drawServerIcon(ctx, PADDING, PADDING + 4, 36);
+
   ctx.fillStyle = '#ffffff';
-  ctx.font = '600 18px Inter, "Noto Sans SC", sans-serif';
-  const titleY = PADDING + 18;
-  ctx.fillText(title, PADDING, titleY);
+  ctx.font = '600 22px Inter, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ctx.fillText('VPS 交易帖', PADDING + 48, PADDING + 30);
 
-  // 标题下边框
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = '13px Inter, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ctx.fillText(inputs.provider || '未知提供商', PADDING + 48, PADDING + 52);
+
+  /* ---- separator ---- */
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(PADDING, titleY + 12);
-  ctx.lineTo(WIDTH - PADDING, titleY + 12);
+  ctx.moveTo(PADDING, currentY - 12);
+  ctx.lineTo(CARD_W - PADDING, currentY - 12);
   ctx.stroke();
 
-  // ---- 5. 绘制内容 ----
-  let y = PADDING + HEADER_HEIGHT;
+  /* ---- sections ---- */
+  for (const section of sections) {
+    // Section title with left accent
+    ctx.fillStyle = '#60a5fa';
+    ctx.fillRect(PADDING, currentY, 3, 18);
 
-  for (const line of lines) {
-    if (line.startsWith('##') || line.startsWith('【')) {
-      // 小标题行
-      ctx.fillStyle = '#60a5fa';
-      ctx.font = '600 14px Inter, "Noto Sans SC", sans-serif';
-      const text = line.replace(/^##+\s*/, '');
-      const wrapped = wrapText(ctx, text, CONTENT_WIDTH);
-      for (const l of wrapped) {
-        ctx.fillText(l, PADDING, y);
-        y += BASE_LINE_HEIGHT;
-      }
-      y += 12 + 8 - BASE_LINE_HEIGHT; // marginTop + marginBottom 调整
-    } else if (line.startsWith('**')) {
-      // 粗体行
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '600 14px Inter, "Noto Sans SC", sans-serif';
-      const text = line.replace(/\*\*/g, '');
-      const wrapped = wrapText(ctx, text, CONTENT_WIDTH);
-      for (const l of wrapped) {
-        ctx.fillText(l, PADDING, y);
-        y += BASE_LINE_HEIGHT;
-      }
-    } else if (line.trim() === '') {
-      // 空行
-      y += BASE_LINE_HEIGHT;
-    } else {
-      // 普通行
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-      ctx.font = '14px Inter, "Noto Sans SC", sans-serif';
-      const wrapped = wrapText(ctx, line, CONTENT_WIDTH);
-      for (const l of wrapped) {
-        ctx.fillText(l, PADDING, y);
-        y += BASE_LINE_HEIGHT;
-      }
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = '600 15px Inter, "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.fillText(section.title, PADDING + 10, currentY + 14);
+    currentY += 28;
+
+    // Section background
+    const sectionH = section.rows.length * (14 * 1.6 + ITEM_GAP) - ITEM_GAP + 16;
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.fillRect(PADDING, currentY - 4, CARD_W - PADDING * 2, sectionH);
+
+    // Rows
+    for (const [label, value] of section.rows) {
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '13px Inter, "PingFang SC", "Microsoft YaHei", sans-serif';
+      ctx.fillText(label, PADDING + 12, currentY + 14);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.font = '500 13px Inter, "PingFang SC", "Microsoft YaHei", sans-serif';
+      ctx.fillText(value, PADDING + 12 + LABEL_W, currentY + 14);
+
+      currentY += 14 * 1.6 + ITEM_GAP;
     }
+
+    currentY += SECTION_GAP - ITEM_GAP;
   }
 
-  // ---- 6. 绘制底部 ----
-  y += 16;
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(PADDING, y);
-  ctx.lineTo(WIDTH - PADDING, y);
-  ctx.stroke();
+  /* ---- final value highlight ---- */
+  const finalY = currentY;
+  ctx.fillStyle = 'rgba(96, 165, 250, 0.1)';
+  ctx.fillRect(PADDING, finalY, CARD_W - PADDING * 2, 56);
 
-  y += 12 + 12;
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-  ctx.font = '12px Inter, "Noto Sans SC", sans-serif';
-  const dateText = `生成于 ${new Date().toLocaleDateString('zh-CN')}`;
-  const dateWidth = ctx.measureText(dateText).width;
-  ctx.fillText(dateText, WIDTH - PADDING - dateWidth, y);
+  ctx.strokeStyle = 'rgba(96, 165, 250, 0.2)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(PADDING, finalY, CARD_W - PADDING * 2, 56);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = '13px Inter, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ctx.fillText('最终价值', PADDING + 16, finalY + 28);
+
+  ctx.fillStyle = '#60a5fa';
+  ctx.font = '600 24px Inter, "PingFang SC", "Microsoft YaHei", sans-serif';
+  const finalText = `${tradeSymbol}${fmtPrice(result.finalValue)}`;
+  const finalW = ctx.measureText(finalText).width;
+  ctx.fillText(finalText, CARD_W - PADDING - 16 - finalW, finalY + 32);
+
+  currentY = finalY + 56 + 24;
+
+  /* ---- tags ---- */
+  let tagX = PADDING;
+  const tags = [
+    { text: `剩 ${fmtDays(result.remainingDays)} 天`, color: '#34d399', bg: 'rgba(52,211,153,0.15)' },
+    { text: `日均 ${tradeSymbol}${fmtPrice(result.dailyPrice)}`, color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
+    { text: `溢价 ${inputs.surcharge >= 0 ? '+' : ''}${tradeSymbol}${fmtPrice(inputs.surcharge)}`, color: '#f87171', bg: 'rgba(248,113,113,0.15)' },
+  ];
+
+  for (const tag of tags) {
+    const tw = drawTag(ctx, tag.text, tagX, currentY, tag.color, tag.bg);
+    tagX += tw + 8;
+  }
+
+  currentY += 32;
+
+  /* ---- watermark ---- */
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.font = '11px Inter, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ctx.fillText('VPS Value Calculator', PADDING, currentY + 16);
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.font = '10px Inter, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ctx.fillText(`https://vpscalc.seaya.link`, PADDING, currentY + 34);
+  ctx.fillText(`生成于 ${new Date().toLocaleDateString('zh-CN')}`, PADDING, currentY + 50);
 
   return canvas;
 };
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                         */
+/* ------------------------------------------------------------------ */
 
 export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
   const [format, setFormat] = useState<'markdown' | 'plain'>('markdown');
@@ -217,7 +338,7 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
   const handleExportImage = async () => {
     setIsExporting(true);
     try {
-      const canvas = await renderToCanvas(title, content);
+      const canvas = await renderToCanvas(inputs, result);
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, 'image/png')
       );
@@ -225,7 +346,7 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `VPS\u4ea4\u6613\u5e16_${inputs.provider || '\u672a\u77e5'}.png`;
+        link.download = `VPS\u4ea4\u6613\u5e16_${inputs.provider || '\u672a\u77e3'}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -241,7 +362,7 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
   const handleCopyImage = async () => {
     setIsExporting(true);
     try {
-      const canvas = await renderToCanvas(title, content);
+      const canvas = await renderToCanvas(inputs, result);
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob(resolve, 'image/png')
       );
