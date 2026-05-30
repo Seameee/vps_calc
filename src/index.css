@@ -279,10 +279,23 @@
 }
 
 /* ================================================================ */
-/*  浅色模式切换按钮选中状态                                         */
+/*  浅色模式切换按钮                                                 */
 /* ================================================================ */
 .light .format-toggle-active {
+  background-color: rgba(0, 0, 0, 0.35) !important;
+  color: rgba(0, 0, 0, 0.95) !important;
+}
+
+.light .format-toggle-btn:not(.format-toggle-active) {
+  color: rgba(0, 0, 0, 0.75) !important;
+}
+.light .format-toggle-btn:not(.format-toggle-active):hover {
+  color: rgba(0, 0, 0, 0.95) !important;
+}
+
+.light .format-toggle-group {
   background-color: rgba(0, 0, 0, 0.12) !important;
+  border-color: rgba(0, 0, 0, 0.18) !important;
 }
 
 /* ================================================================ */

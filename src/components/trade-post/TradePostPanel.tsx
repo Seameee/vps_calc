@@ -391,7 +391,7 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
           <button
             onClick={() => setFormat('markdown')}
             className={cn(
-              'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+              'format-toggle-btn rounded-md px-3 py-1 text-xs font-medium transition-colors',
               format === 'markdown' ? 'format-toggle-active bg-white/10 text-white' : 'text-white/50 hover:text-white/80',
             )}
           >
@@ -400,7 +400,7 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
           <button
             onClick={() => setFormat('plain')}
             className={cn(
-              'rounded-md px-3 py-1 text-xs font-medium transition-colors',
+              'format-toggle-btn rounded-md px-3 py-1 text-xs font-medium transition-colors',
               format === 'plain' ? 'format-toggle-active bg-white/10 text-white' : 'text-white/50 hover:text-white/80',
             )}
           >
