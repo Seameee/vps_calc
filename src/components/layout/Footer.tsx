@@ -17,10 +17,10 @@ export function Footer() {
       )}
     >
       <p className="text-sm text-white/50">
-        &copy; {currentYear} VPS 剩余价值计算器. All rights reserved.
+        &copy; {currentYear} VPS 剩余价值计算器.
       </p>
       <a
-        href="https://github.com"
+        href="https://github.com/Seameee/vps_calc"
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center gap-1.5 text-sm text-white/50 transition-colors hover:text-white/80"
