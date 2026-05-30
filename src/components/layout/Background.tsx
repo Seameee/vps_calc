@@ -38,7 +38,7 @@ export function Background() {
       />
       
       {/* 暗色遮罩 */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/50" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/60" />
     </div>
   );
 }

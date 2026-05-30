@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { Server } from 'lucide-react';
 import type { VPSInputs } from '@/types/calculator';
 import type { CurrencyCode } from '@/types/currency';
 import { BILLING_CYCLES, SUPPORTED_CURRENCIES, CURRENCY_SYMBOLS } from '@/utils/constants';
@@ -72,7 +73,10 @@ export function CalculatorForm({ inputs, onChange }: CalculatorFormProps) {
 
   return (
     <div className={cn('glass-card space-y-4 p-4')}>
-      <h2 className="text-lg font-semibold text-white/95">VPS 信息</h2>
+      <div className="flex items-center gap-2">
+        <Server className="h-5 w-5 text-blue-400" />
+        <h2 className="text-lg font-semibold text-white/95">VPS 信息</h2>
+      </div>
 
       <div className="space-y-3">
         <div className="space-y-1">
