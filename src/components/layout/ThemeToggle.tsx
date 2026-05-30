@@ -86,14 +86,11 @@ export function ThemeToggle() {
       {isOpen && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed rounded-xl border border-white/10 shadow-xl overflow-hidden z-[9999]"
+          className="glass-dropdown fixed rounded-xl border shadow-xl overflow-hidden z-[9999]"
           style={{
             top: position.top,
             left: position.left,
             width: '112px',
-            background: 'rgba(15, 15, 25, 0.95)',
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
           }}
         >
           {themeOptions.map((option) => (

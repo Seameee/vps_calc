@@ -1,5 +1,6 @@
 import { Server } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from './ThemeToggle';
 
 /**
  * 页面头部组件
@@ -27,6 +28,7 @@ export function Header() {
           </p>
         </div>
       </div>
+      <ThemeToggle />
     </header>
   );
 }

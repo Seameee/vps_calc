@@ -387,12 +387,12 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
           <FileText className="h-5 w-5 text-purple-400" />
           <h2 className="text-lg font-semibold text-white/95">交易帖</h2>
         </div>
-        <div className="flex rounded-lg border border-white/10 bg-white/[0.04] p-0.5">
+        <div className="format-toggle-group flex rounded-lg border border-white/10 bg-white/[0.04] p-0.5">
           <button
             onClick={() => setFormat('markdown')}
             className={cn(
               'rounded-md px-3 py-1 text-xs font-medium transition-colors',
-              format === 'markdown' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/80',
+              format === 'markdown' ? 'format-toggle-active bg-white/10 text-white' : 'text-white/50 hover:text-white/80',
             )}
           >
             Markdown
@@ -401,7 +401,7 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
             onClick={() => setFormat('plain')}
             className={cn(
               'rounded-md px-3 py-1 text-xs font-medium transition-colors',
-              format === 'plain' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/80',
+              format === 'plain' ? 'format-toggle-active bg-white/10 text-white' : 'text-white/50 hover:text-white/80',
             )}
           >
             纯文本

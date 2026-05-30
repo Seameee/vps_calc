@@ -17,10 +17,10 @@ function getSystemTheme(): 'dark' | 'light' {
 }
 
 function getInitialTheme(): Theme {
-  if (typeof window === 'undefined') return 'dark';
+  if (typeof window === 'undefined') return 'system';
   const stored = localStorage.getItem('vps-calc-theme');
   if (stored === 'dark' || stored === 'light' || stored === 'system') return stored;
-  return 'dark';
+  return 'system';
 }
 
 /**

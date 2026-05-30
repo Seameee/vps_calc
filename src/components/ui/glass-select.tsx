@@ -100,14 +100,11 @@ export function GlassSelect({ value, onChange, options, placeholder, className, 
       {isOpen && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed overflow-hidden rounded-lg border border-white/10 shadow-xl z-[9999]"
+          className="glass-dropdown fixed overflow-hidden rounded-lg border shadow-xl z-[9999]"
           style={{
             top: position.top,
             left: position.left,
             width: position.width,
-            background: 'rgba(15, 15, 25, 0.95)',
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
           }}
         >
           <div className="max-h-60 overflow-auto py-1">

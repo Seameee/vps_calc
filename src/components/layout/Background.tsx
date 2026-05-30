@@ -1,12 +1,10 @@
 import { useBackgroundImage } from '@/hooks/useBackgroundImage';
 
-const FALLBACK_GRADIENT = 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)';
-
 /**
  * 背景组件
  *
  * 从 API 加载每日背景图，失败时使用 CSS 渐变降级，
- * 叠加暗色遮罩确保文字可读性。
+ * 叠加遮罩确保文字可读性。遮罩颜色跟随主题切换。
  * 
  * 使用双层背景避免加载过程中的闪烁：
  * - 底层：始终显示的 fallback 渐变
@@ -22,7 +20,7 @@ export function Background() {
       {/* 底层 fallback：始终显示，避免加载空白 */}
       <div
         className="absolute inset-0"
-        style={{ background: FALLBACK_GRADIENT }}
+        style={{ background: 'var(--fallback-gradient)' }}
       />
       
       {/* 上层背景图：加载成功后淡入 */}
@@ -37,8 +35,13 @@ export function Background() {
         }}
       />
       
-      {/* 暗色遮罩 */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/60" />
+      {/* 主题感知遮罩 */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'linear-gradient(to bottom, var(--overlay-from), var(--overlay-to))',
+        }}
+      />
     </div>
   );
 }
