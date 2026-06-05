@@ -23,7 +23,7 @@ export function Header() {
           <h1 className="text-xl font-bold tracking-tight text-white/95">
             VPS 剩余价值计算器
           </h1>
-          <p className="text-xs text-white/50">
+          <p className="text-xs text-white/60">
             精确计算剩余价值，支持实时汇率与交易帖生成
           </p>
         </div>

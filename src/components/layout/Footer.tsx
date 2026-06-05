@@ -16,14 +16,14 @@ export function Footer() {
         'flex flex-col items-center justify-between gap-2 sm:flex-row',
       )}
     >
-      <p className="text-sm text-white/50">
+      <p className="text-sm text-white/60">
         &copy; {currentYear} VPS 剩余价值计算器.
       </p>
       <a
         href="https://github.com/Seameee/vps_calc"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-1.5 text-sm text-white/50 transition-colors hover:text-white/80"
+        className="flex items-center gap-1.5 text-sm text-white/60 transition-colors hover:text-white/80"
       >
         <ExternalLink className="h-4 w-4" />
         <span>GitHub</span>

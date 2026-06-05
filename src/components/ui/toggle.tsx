@@ -23,12 +23,10 @@ export function Toggle({ checked, onChange, label, description, className }: Tog
         className
       )}
       onClick={() => onChange(!checked)}
-      role="switch"
-      aria-checked={checked}
     >
       <div className="flex flex-col gap-0.5">
         {label && <span className="text-sm text-white/90">{label}</span>}
-        {description && <span className="text-xs text-white/50">{description}</span>}
+        {description && <span className="text-xs text-white/60">{description}</span>}
       </div>
 
       <button
@@ -43,6 +41,7 @@ export function Toggle({ checked, onChange, label, description, className }: Tog
         )}
         aria-checked={checked}
         role="switch"
+        aria-label={label}
       >
         <span
           className={cn(

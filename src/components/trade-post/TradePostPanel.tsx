@@ -322,7 +322,7 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
   if (!result) {
     return (
       <div className={cn('glass-card flex items-center justify-center p-8')}>
-        <p className="text-white/50">计算完成后可生成交易帖</p>
+        <p className="text-white/60">计算完成后可生成交易帖</p>
       </div>
     );
   }
@@ -409,7 +409,7 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
             onClick={() => setFormat('markdown')}
             className={cn(
               'format-toggle-btn rounded-md px-3 py-1 text-xs font-medium transition-colors',
-              format === 'markdown' ? 'format-toggle-active bg-white/10 text-white' : 'text-white/50 hover:text-white/80',
+              format === 'markdown' ? 'format-toggle-active bg-white/10 text-white' : 'text-white/60 hover:text-white/80',
             )}
           >
             Markdown
@@ -418,7 +418,7 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
             onClick={() => setFormat('plain')}
             className={cn(
               'format-toggle-btn rounded-md px-3 py-1 text-xs font-medium transition-colors',
-              format === 'plain' ? 'format-toggle-active bg-white/10 text-white' : 'text-white/50 hover:text-white/80',
+              format === 'plain' ? 'format-toggle-active bg-white/10 text-white' : 'text-white/60 hover:text-white/80',
             )}
           >
             纯文本
@@ -430,7 +430,7 @@ export function TradePostPanel({ inputs, result }: TradePostPanelProps) {
       <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-xs text-white/50 mb-1">标题预览</p>
+            <p className="text-xs text-white/60 mb-1">标题预览</p>
             <p className="text-sm text-white/90 truncate">{title}</p>
           </div>
           <button

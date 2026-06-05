@@ -135,9 +135,16 @@ export default function App() {
           <Background />
 
           <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col px-3 py-4 sm:px-4 lg:px-6">
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:bg-blue-500 focus:px-4 focus:py-2 focus:text-white"
+            >
+              跳转到主内容
+            </a>
+
             <Header />
 
-            <main className="flex-1">
+            <main id="main-content" className="flex-1">
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-start">
                 {/* 左侧表单 */}
                 <section className="space-y-3">

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { GlassSelect } from '@/components/ui/glass-select';
 import { Toggle } from '@/components/ui/toggle';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/components/layout/ThemeProvider';
 
 interface CalculatorFormProps {
   inputs: VPSInputs;
@@ -57,6 +58,7 @@ const TRAFFIC_UNIT_OPTIONS = [
  * 收集 VPS 配置、计费与交易信息。
  */
 export function CalculatorForm({ inputs, onChange }: CalculatorFormProps) {
+  const { resolvedTheme } = useTheme();
   const [featureInput, setFeatureInput] = useState('');
   // 使用本地状态管理日期输入，避免受控组件与浏览器原生 date input 冲突
   const [dateInput, setDateInput] = useState(() => inputs.expirationDate.toISOString().split('T')[0]);
@@ -135,6 +137,7 @@ export function CalculatorForm({ inputs, onChange }: CalculatorFormProps) {
                   className="flex-1"
                 />
                 <GlassSelect
+                  id="ram-unit"
                   value={inputs.ram.unit}
                   onChange={(value) => updateField('ram', { ...inputs.ram, unit: value as 'GB' | 'MB' })}
                   options={RAM_UNIT_OPTIONS}
@@ -156,6 +159,7 @@ export function CalculatorForm({ inputs, onChange }: CalculatorFormProps) {
                   className="flex-1"
                 />
                 <GlassSelect
+                  id="storage-type"
                   value={inputs.storage.type}
                   onChange={(value) => updateField('storage', { ...inputs.storage, type: value as 'SSD' | 'HDD' | 'NVMe' })}
                   options={STORAGE_TYPE_OPTIONS}
@@ -177,6 +181,7 @@ export function CalculatorForm({ inputs, onChange }: CalculatorFormProps) {
                   className="flex-1"
                 />
                 <GlassSelect
+                  id="bandwidth-unit"
                   value={inputs.bandwidth.unit}
                   onChange={(value) => updateField('bandwidth', { ...inputs.bandwidth, unit: value as 'Mbps' | 'Gbps' })}
                   options={BANDWIDTH_UNIT_OPTIONS}
@@ -201,6 +206,7 @@ export function CalculatorForm({ inputs, onChange }: CalculatorFormProps) {
                 className="flex-1"
               />
               <GlassSelect
+                id="traffic-unit"
                 value={inputs.traffic.unit}
                 onChange={(value) => updateField('traffic', { ...inputs.traffic, unit: value as 'GB' | 'TB' })}
                 options={TRAFFIC_UNIT_OPTIONS}
@@ -220,6 +226,7 @@ export function CalculatorForm({ inputs, onChange }: CalculatorFormProps) {
           <div className="mt-3 space-y-1">
             <Label htmlFor="trafficCalc">流量计算方式</Label>
             <GlassSelect
+              id="trafficCalc"
               value={inputs.trafficCalc}
               onChange={(value) => updateField('trafficCalc', value as VPSInputs['trafficCalc'])}
               options={TRAFFIC_CALC_OPTIONS}
@@ -286,6 +293,7 @@ export function CalculatorForm({ inputs, onChange }: CalculatorFormProps) {
           <div className="space-y-1">
             <Label htmlFor="billingCurrency">计费货币</Label>
             <GlassSelect
+              id="billingCurrency"
               value={inputs.billingCurrency}
               onChange={(value) => updateField('billingCurrency', value as CurrencyCode)}
               options={CURRENCY_OPTIONS}
@@ -297,6 +305,7 @@ export function CalculatorForm({ inputs, onChange }: CalculatorFormProps) {
           <div className="space-y-1">
             <Label htmlFor="billingCycle">计费周期</Label>
             <GlassSelect
+              id="billingCycle"
               value={inputs.billingCycle}
               onChange={(value) => updateField('billingCycle', value as VPSInputs['billingCycle'])}
               options={BILLING_CYCLE_OPTIONS}
@@ -309,7 +318,7 @@ export function CalculatorForm({ inputs, onChange }: CalculatorFormProps) {
               type="date"
               className={cn(
                 'glass-input',
-                '[color-scheme:dark]'
+                resolvedTheme === 'dark' ? '[color-scheme:dark]' : '[color-scheme:light]'
               )}
               defaultValue={dateInput}
               onBlur={(e) => {
@@ -363,6 +372,7 @@ export function CalculatorForm({ inputs, onChange }: CalculatorFormProps) {
             <div className="space-y-1">
               <Label htmlFor="tradeMethod">交易方式</Label>
               <GlassSelect
+                id="tradeMethod"
                 value={inputs.tradeMethod ?? ''}
                 onChange={(value) => updateField('tradeMethod', value === '' ? null : value as VPSInputs['tradeMethod'])}
                 options={[{ value: '', label: '请选择' }, ...TRADE_METHOD_OPTIONS]}
@@ -386,6 +396,7 @@ export function CalculatorForm({ inputs, onChange }: CalculatorFormProps) {
             <div className="space-y-1">
               <Label htmlFor="feeBearer">费用承担方</Label>
               <GlassSelect
+                id="feeBearer"
                 value={inputs.feeBearer}
                 onChange={(value) => updateField('feeBearer', value as VPSInputs['feeBearer'])}
                 options={FEE_BEARER_OPTIONS}
@@ -394,6 +405,7 @@ export function CalculatorForm({ inputs, onChange }: CalculatorFormProps) {
             <div className="space-y-1">
               <Label htmlFor="tradeCurrency">交易货币</Label>
               <GlassSelect
+                id="tradeCurrency"
                 value={inputs.tradeCurrency}
                 onChange={(value) => updateField('tradeCurrency', value as CurrencyCode)}
                 options={CURRENCY_OPTIONS}

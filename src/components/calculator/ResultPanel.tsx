@@ -18,8 +18,8 @@ interface ResultPanelProps {
 export function ResultPanel({ result, inputs }: ResultPanelProps) {
   if (!result) {
     return (
-      <div className={cn('glass-card flex items-center justify-center p-8')}>
-        <p className="text-white/50">请输入 VPS 信息以查看计算结果</p>
+      <div className={cn('glass-card flex items-center justify-center p-8')} aria-live="polite">
+        <p className="text-white/60">请输入 VPS 信息以查看计算结果</p>
       </div>
     );
   }
@@ -62,7 +62,7 @@ export function ResultPanel({ result, inputs }: ResultPanelProps) {
   ];
 
   return (
-    <div className={cn('glass-card space-y-4 p-4')}>
+    <div className={cn('glass-card space-y-4 p-4')} aria-live="polite" aria-atomic="true">
       <div className="flex items-center gap-2">
         <Percent className="h-5 w-5 text-blue-400" />
         <h2 className="text-lg font-semibold text-white/95">计算结果</h2>
@@ -95,7 +95,7 @@ export function ResultPanel({ result, inputs }: ResultPanelProps) {
       </div>
 
       {result.exchangeRate !== null && inputs.billingCurrency !== inputs.tradeCurrency && (
-        <div className="flex items-center gap-2 text-xs text-white/50">
+        <div className="flex items-center gap-2 text-xs text-white/60">
           <TrendingUp className="h-3 w-3" />
           <span>
             汇率: 1 {inputs.billingCurrency} ≈ {result.exchangeRate.toFixed(4)} {inputs.tradeCurrency}
