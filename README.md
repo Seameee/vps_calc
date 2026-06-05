@@ -60,23 +60,30 @@ npm run build
 
 本项目为纯前端静态应用，构建后仅需部署 `dist/` 目录中的文件。
 
-### 部署到 Vercel
+### 一键部署
+
+点击下方按钮即可将项目直接部署到对应平台（需先授权连接 GitHub 仓库）：
+
+| 平台 | 按钮 |
+|------|------|
+| **Vercel** | [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FSeameee%2Fvps_calc&project-name=vps-calc&repo-name=vps-calc) |
+| **Netlify** | [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/Seameee/vps_calc) |
+
+### 命令行部署
 
 ```bash
+# 构建生产版本
+npm run build
+
+# 使用 Vercel CLI
 npm i -g vercel
 vercel --prod
-```
 
-### 部署到 Netlify
-
-```bash
+# 使用 Netlify CLI
 npm i -g netlify-cli
 netlify deploy --prod --dir=dist
-```
 
-### 部署到 Cloudflare Pages
-
-```bash
+# 使用 Wrangler (Cloudflare Pages)
 npm i -g wrangler
 wrangler pages deploy dist --project-name=vps-calc
 ```
