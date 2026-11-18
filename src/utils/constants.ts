@@ -31,7 +31,7 @@ export const FALLBACK_RATES: FallbackRateTable = {
 export const CACHE_KEY_PREFIX = 'vps_calc_rates_v1';
 export const CACHE_TTL_MS = 3_600_000;
 export const REQUEST_TIMEOUT_MS = 5_000;
-export const BG_API_URL = 'https://api.seaya.link/daily/';
+export const BG_API_URL = 'https://api.seaya.link/api/v1/daily/file';
 export const BG_TIMEOUT_MS = 10_000;
 
 export const FEATURES = [
